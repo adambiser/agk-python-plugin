@@ -107,15 +107,16 @@ int GetHandle(PyObject *object)
 	return m_Objects.size();
 }
 
-void ClearPyObjectHandles()
+void ResetPyObjectHandleList()
 {
-	for (int index = 0; index < (int)m_Objects.size(); index++)
-	{
-		if (m_Objects[index])
-		{
-			Py_CLEAR(m_Objects[index]);
-		}
-	}
+	// Don't DECREF the objects here.  It causes PyFinalize to throw an exception.
+	// Those who create the objects need to DECREF them themselves.
+	//for (int index = 0; index < (int)m_Objects.size(); index++)
+	//{
+	//	PyObject *object = m_Objects.back();
+	//	Py_CLEAR(object);
+	//	m_Objects.pop_back();
+	//}
 	m_Objects.clear();
 	m_Objects.push_back(Py_None); // Store Py_None as handle 1.
 }
@@ -219,7 +220,7 @@ https://docs.python.org/3/c-api/init.html
 */
 void _Py_Initialize()
 {
-	ClearPyObjectHandles();
+	ResetPyObjectHandleList();
 	Py_InitializeEx(0);
 	//Py_Initialize();
 }
@@ -231,7 +232,7 @@ int _Py_IsInitialized()
 
 int _Py_Finalize()
 {
-	ClearPyObjectHandles();
+	ResetPyObjectHandleList();
 	FreeWChar(m_ProgramName);
 	FreeWChar(m_PythonHome);
 	return Py_FinalizeEx();

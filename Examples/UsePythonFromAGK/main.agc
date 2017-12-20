@@ -173,8 +173,8 @@ EndFunction
 Function BuildValue()
 	AddStatus("Creating a tuple using Py_BuildValue")
 	hValue as integer
-	hValue = Py.Py_BuildValue("ssiif", "hello,'test,this',2,365,2.5886")
-	AddStatus("Py_BuildValue handle: " + str(hValue))
+	hValue = Py.Py_BuildValue("ssiif", "hello_this_is long_text,'test,this',2,365,2.5886")
+	AddStatus("Py_BuildValue handle: " + str(hValue) + ", type: " + Py.Py_TYPE_NAME(hValue))
 	AddStatus("Py_BuildValue repr: " + Py.PyObject_Repr(hValue))
 	x as integer
 	for x = 0 to Py.PyTuple_Size(hValue) - 1
