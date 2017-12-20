@@ -46,9 +46,8 @@ NOTE: Cannot use bool as a return or parameter type for exported functions becau
 #include <Python.h>
 #endif
 
-// These need to be stored staticly.
+// These need to be stored staticly and should not be changed while Python is initialized.
 wchar_t *m_ProgramName;
-wchar_t *m_Path;
 wchar_t *m_PythonHome;
 
 /*
@@ -176,8 +175,11 @@ wchar_t *DecodeStringEx(char *text, const char *caller)
 
 void FreeWChar(wchar_t * wtext)
 {
-	PyMem_RawFree(wtext);
-	wtext = NULL;
+	if (wtext != NULL)
+	{
+		PyMem_RawFree(wtext);
+		wtext = NULL;
+	}
 }
 
 std::vector<std::string> ParseCSV(std::string csv)
@@ -218,8 +220,8 @@ https://docs.python.org/3/c-api/init.html
 void _Py_Initialize()
 {
 	ClearPyObjectHandles();
-	//Py_InitializeEx(0);
-	Py_Initialize();
+	Py_InitializeEx(0);
+	//Py_Initialize();
 }
 
 int _Py_IsInitialized()
@@ -231,13 +233,18 @@ int _Py_Finalize()
 {
 	ClearPyObjectHandles();
 	FreeWChar(m_ProgramName);
-	FreeWChar(m_Path);
 	FreeWChar(m_PythonHome);
 	return Py_FinalizeEx();
 }
 
 void _Py_SetProgramName(char *name)
 {
+	//  The argument should point to a zero-terminated wide character string in static storage whose contents will not change for the duration of the program's execution.
+	if (Py_IsInitialized())
+	{
+		agk::PluginError("Py_SetProgramName cannot be called while Python is initialized.");
+		return;
+	}
 	FreeWChar(m_ProgramName);
 	m_ProgramName = DecodeString(name);
 	if (m_ProgramName != NULL)
@@ -273,12 +280,12 @@ char *_Py_GetPath()
 
 void _Py_SetPath(char *path)
 {
-	FreeWChar(m_Path);
-	m_Path = DecodeString(path);
-	if (m_Path != NULL)
+	wchar_t *wPath = DecodeString(path);
+	if (wPath != NULL)
 	{
-		Py_SetPath(m_Path);
+		Py_SetPath(wPath);
 	}
+	FreeWChar(wPath);
 }
 
 char *_Py_GetVersion()
@@ -308,6 +315,11 @@ char *_Py_GetBuildInfo()
 
 void _Py_SetPythonHome(char *home)
 {
+	if (Py_IsInitialized())
+	{
+		agk::PluginError("Py_SetPythonHome cannot be called while Python is initialized.");
+		return;
+	}
 	FreeWChar(m_PythonHome);
 	m_PythonHome = DecodeString(home);
 	if (m_PythonHome != NULL)
@@ -567,6 +579,7 @@ int _PyImport_ImportModuleEx(const char *name, int hglobals, int hlocals, int hf
 
 int _PyImport_Import(int hname)
 {
+	REQUIRED_HANDLE(hname)
 	PyObject *name = GetPyObject(hname);
 	PyObject *import = PyImport_Import(name);
 	CheckError();
@@ -581,10 +594,9 @@ int _PyImport_ImportS(const char *name)
 		return NULL;
 	}
 	PyObject *import = PyImport_Import(oname);
-	CheckError();
-	int himport = GetHandle(import);
 	Py_DecRef(oname);
-	return himport;
+	CheckError();
+	return GetHandle(import);
 }
 
 int _PyImport_ReloadModule(int hhodule)
