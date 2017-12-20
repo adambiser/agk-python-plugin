@@ -1,0 +1,9 @@
+UpdateAGKFolder.bat
+*.pyc
+.idea
+
+# not needed
+steam_api64.dll
+
+Tier2Application
+ThirdParty/agk
