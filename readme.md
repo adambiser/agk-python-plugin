@@ -1,5 +1,3 @@
-# This is a work in progress!
-
 # AGK Python Plugin
 
 A plugin to give some Python 3 functionality to games developed using AppGameKit's Tier 1 system.
